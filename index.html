@@ -75,6 +75,18 @@
     background: #e8eaf6;
     border-bottom: 2px solid #4361ee;
   }
+  .s1-label {
+    background: #fff3e0;
+    border-bottom: 2px solid #f58518;
+  }
+  .s2-label {
+    background: #e8f5e9;
+    border-bottom: 2px solid #2ca02c;
+  }
+  .s3-label {
+    background: #e8eaf6;
+    border-bottom: 2px solid #4361ee;
+  }
   .compare-panel iframe {
     flex: 1;
   }
@@ -104,6 +116,7 @@
     color: #fff;
   }
   .legend-badge.s1 { background: #f58518; }
+  .legend-badge.s2 { background: #2ca02c; }
   .legend-badge.s3 { background: #4361ee; }
   .legend-badge.base { background: #6c757d; }
 </style>
@@ -122,12 +135,16 @@
     <span>Belanja Daerah <b>+10%</b></span>
   </div>
   <div class="legend-item">
+    <span class="legend-badge s2">S2</span>
+    <span>PDRB per kapita <b>+5%</b></span>
+  </div>
+  <div class="legend-item">
     <span class="legend-badge s3">S3</span>
     <span>Belanja <b>+10%</b>, PAD <b>+10%</b>, PDRB <b>+5%</b></span>
   </div>
   <div class="legend-item">
     <span>&Delta;</span>
-    <span>= Selisih (Skenario &minus; Baseline)</span>
+    <span>= Selisih (Skenario &minus; Baseline) &nbsp;|&nbsp; <b>Skala warna seragam</b> per indikator</span>
   </div>
 </div>
 
@@ -135,29 +152,23 @@
 <button class="tab-btn active" onclick="switchTab(0)" id="btn_0">Kemiskinan (Baseline)</button>
 <button class="tab-btn " onclick="switchTab(1)" id="btn_1">IPM (Baseline)</button>
 <button class="tab-btn " onclick="switchTab(2)" id="btn_2">TPT (Baseline)</button>
-<button class="tab-btn " onclick="switchTab(3)" id="btn_3">Kemiskinan (S1)</button>
-<button class="tab-btn " onclick="switchTab(4)" id="btn_4">IPM (S1)</button>
-<button class="tab-btn " onclick="switchTab(5)" id="btn_5">TPT (S1)</button>
-<button class="tab-btn " onclick="switchTab(6)" id="btn_6">Kemiskinan (S3)</button>
-<button class="tab-btn " onclick="switchTab(7)" id="btn_7">IPM (S3)</button>
-<button class="tab-btn " onclick="switchTab(8)" id="btn_8">TPT (S3)</button>
-<button class="tab-btn " onclick="switchTab(9)" id="btn_9">Δ Kemiskinan (S1 vs S3)</button>
-<button class="tab-btn " onclick="switchTab(10)" id="btn_10">Δ IPM (S1 vs S3)</button>
-<button class="tab-btn " onclick="switchTab(11)" id="btn_11">Δ TPT (S1 vs S3)</button>
+<button class="tab-btn " onclick="switchTab(3)" id="btn_3">Kemiskinan (S1/S2/S3)</button>
+<button class="tab-btn " onclick="switchTab(4)" id="btn_4">IPM (S1/S2/S3)</button>
+<button class="tab-btn " onclick="switchTab(5)" id="btn_5">TPT (S1/S2/S3)</button>
+<button class="tab-btn " onclick="switchTab(6)" id="btn_6">Δ Kemiskinan (S1/S2/S3)</button>
+<button class="tab-btn " onclick="switchTab(7)" id="btn_7">Δ IPM (S1/S2/S3)</button>
+<button class="tab-btn " onclick="switchTab(8)" id="btn_8">Δ TPT (S1/S2/S3)</button>
 </div>
 
 <div class="tab-content" id="tab_0" style="display:block;"><iframe src="maps/map_0.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
 <div class="tab-content" id="tab_1" style="display:none;"><iframe src="maps/map_1.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
 <div class="tab-content" id="tab_2" style="display:none;"><iframe src="maps/map_2.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
-<div class="tab-content" id="tab_3" style="display:none;"><iframe src="maps/map_3.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
-<div class="tab-content" id="tab_4" style="display:none;"><iframe src="maps/map_4.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
-<div class="tab-content" id="tab_5" style="display:none;"><iframe src="maps/map_5.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
-<div class="tab-content" id="tab_6" style="display:none;"><iframe src="maps/map_6.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
-<div class="tab-content" id="tab_7" style="display:none;"><iframe src="maps/map_7.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
-<div class="tab-content" id="tab_8" style="display:none;"><iframe src="maps/map_8.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
-<div class="tab-content comparison" id="tab_9" style="display:none;"><div class="compare-wrapper"><div class="compare-panel"><div class="compare-label">S1: Δ Kemiskinan (S1 − Baseline)</div><iframe src="maps/map_9.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label">S3: Δ Kemiskinan (S3 − Baseline)</div><iframe src="maps/map_10.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div></div></div>
-<div class="tab-content comparison" id="tab_10" style="display:none;"><div class="compare-wrapper"><div class="compare-panel"><div class="compare-label">S1: Δ IPM (S1 − Baseline)</div><iframe src="maps/map_11.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label">S3: Δ IPM (S3 − Baseline)</div><iframe src="maps/map_12.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div></div></div>
-<div class="tab-content comparison" id="tab_11" style="display:none;"><div class="compare-wrapper"><div class="compare-panel"><div class="compare-label">S1: Δ TPT (S1 − Baseline)</div><iframe src="maps/map_13.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label">S3: Δ TPT (S3 − Baseline)</div><iframe src="maps/map_14.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div></div></div>
+<div class="tab-content triple" id="tab_3" style="display:none;"><div class="compare-wrapper"><div class="compare-panel"><div class="compare-label s1-label">S1: Kemiskinan</div><iframe src="maps/map_3.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label s2-label">S2: Kemiskinan</div><iframe src="maps/map_4.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label s3-label">S3: Kemiskinan</div><iframe src="maps/map_5.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div></div></div>
+<div class="tab-content triple" id="tab_4" style="display:none;"><div class="compare-wrapper"><div class="compare-panel"><div class="compare-label s1-label">S1: IPM</div><iframe src="maps/map_6.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label s2-label">S2: IPM</div><iframe src="maps/map_7.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label s3-label">S3: IPM</div><iframe src="maps/map_8.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div></div></div>
+<div class="tab-content triple" id="tab_5" style="display:none;"><div class="compare-wrapper"><div class="compare-panel"><div class="compare-label s1-label">S1: TPT</div><iframe src="maps/map_9.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label s2-label">S2: TPT</div><iframe src="maps/map_10.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label s3-label">S3: TPT</div><iframe src="maps/map_11.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div></div></div>
+<div class="tab-content triple" id="tab_6" style="display:none;"><div class="compare-wrapper"><div class="compare-panel"><div class="compare-label s1-label">S1: Δ Kemiskinan</div><iframe src="maps/map_12.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label s2-label">S2: Δ Kemiskinan</div><iframe src="maps/map_13.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label s3-label">S3: Δ Kemiskinan</div><iframe src="maps/map_14.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div></div></div>
+<div class="tab-content triple" id="tab_7" style="display:none;"><div class="compare-wrapper"><div class="compare-panel"><div class="compare-label s1-label">S1: Δ IPM</div><iframe src="maps/map_15.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label s2-label">S2: Δ IPM</div><iframe src="maps/map_16.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label s3-label">S3: Δ IPM</div><iframe src="maps/map_17.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div></div></div>
+<div class="tab-content triple" id="tab_8" style="display:none;"><div class="compare-wrapper"><div class="compare-panel"><div class="compare-label s1-label">S1: Δ TPT</div><iframe src="maps/map_18.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label s2-label">S2: Δ TPT</div><iframe src="maps/map_19.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label s3-label">S3: Δ TPT</div><iframe src="maps/map_20.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div></div></div>
 
 <script>
 function switchTab(idx) {

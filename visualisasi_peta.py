@@ -27,50 +27,47 @@ CSV_PATH = ROOT / "policy_simulation_output.csv"
 OUTPUT_PATH = ROOT / "index.html"
 MAPS_DIR = ROOT / "maps"
 
-# Indikator peta tunggal
+# Indikator peta tunggal (Baseline saja – skala bebas)
 SINGLE_INDICATORS = [
-    # ── Baseline ──
     ("poor_rate_baseline", "Kemiskinan (Baseline)",
      "Tingkat Kemiskinan – Baseline (per 1.000 penduduk)", "YlOrRd", ".1f"),
     ("IPM_baseline", "IPM (Baseline)",
      "IPM – Baseline", "YlGn", ".2f"),
     ("TPT_baseline", "TPT (Baseline)",
      "TPT – Baseline (%)", "PuBu", ".2f"),
-
-    # ── Skenario 1 ──
-    ("poor_rate_s1", "Kemiskinan (S1)",
-     "Tingkat Kemiskinan – Skenario S1 (per 1.000 penduduk)", "YlOrRd", ".1f"),
-    ("IPM_s1", "IPM (S1)",
-     "IPM – Skenario S1", "YlGn", ".2f"),
-    ("TPT_s1", "TPT (S1)",
-     "TPT – Skenario S1 (%)", "PuBu", ".2f"),
-
-    # ── Skenario 3 ──
-    ("poor_rate_s3", "Kemiskinan (S3)",
-     "Tingkat Kemiskinan – Skenario S3 (per 1.000 penduduk)", "YlOrRd", ".1f"),
-    ("IPM_s3", "IPM (S3)",
-     "IPM – Skenario S3", "YlGn", ".2f"),
-    ("TPT_s3", "TPT (S3)",
-     "TPT – Skenario S3 (%)", "PuBu", ".2f"),
 ]
 
-# Indikator perbandingan (S1 vs S3, side-by-side, shared color scale)
-COMPARISON_INDICATORS = [
-    # (col_s1, col_s3, tab_label, title_s1, title_s3, cmap, fmt)
-    ("delta_poor_rate_s1", "delta_poor_rate_s3",
-     "Δ Kemiskinan (S1 vs S3)",
-     "Δ Kemiskinan (S1 − Baseline)",
-     "Δ Kemiskinan (S3 − Baseline)",
+# Perbandingan absolut S1 vs S2 vs S3 – shared scale per indikator
+ABSOLUTE_TRIPLE = [
+    # (col_s1, col_s2, col_s3, tab_label, title_s1, title_s2, title_s3, cmap, fmt)
+    ("poor_rate_s1", "poor_rate_s2", "poor_rate_s3",
+     "Kemiskinan (S1/S2/S3)",
+     "S1: Kemiskinan", "S2: Kemiskinan", "S3: Kemiskinan",
+     "YlOrRd", ".1f"),
+    ("IPM_s1", "IPM_s2", "IPM_s3",
+     "IPM (S1/S2/S3)",
+     "S1: IPM", "S2: IPM", "S3: IPM",
+     "YlGn", ".2f"),
+    ("TPT_s1", "TPT_s2", "TPT_s3",
+     "TPT (S1/S2/S3)",
+     "S1: TPT", "S2: TPT", "S3: TPT",
+     "PuBu", ".2f"),
+]
+
+# Perbandingan delta S1 vs S2 vs S3 – shared scale per indikator
+DELTA_TRIPLE = [
+    # (col_s1, col_s2, col_s3, tab_label, title_s1, title_s2, title_s3, cmap, fmt)
+    ("delta_poor_rate_s1", "delta_poor_rate_s2", "delta_poor_rate_s3",
+     "Δ Kemiskinan (S1/S2/S3)",
+     "S1: Δ Kemiskinan", "S2: Δ Kemiskinan", "S3: Δ Kemiskinan",
      "RdYlGn_r", ".4f"),
-    ("delta_IPM_s1", "delta_IPM_s3",
-     "Δ IPM (S1 vs S3)",
-     "Δ IPM (S1 − Baseline)",
-     "Δ IPM (S3 − Baseline)",
+    ("delta_IPM_s1", "delta_IPM_s2", "delta_IPM_s3",
+     "Δ IPM (S1/S2/S3)",
+     "S1: Δ IPM", "S2: Δ IPM", "S3: Δ IPM",
      "RdYlGn", ".4f"),
-    ("delta_TPT_s1", "delta_TPT_s3",
-     "Δ TPT (S1 vs S3)",
-     "Δ TPT (S1 − Baseline)",
-     "Δ TPT (S3 − Baseline)",
+    ("delta_TPT_s1", "delta_TPT_s2", "delta_TPT_s3",
+     "Δ TPT (S1/S2/S3)",
+     "S1: Δ TPT", "S2: Δ TPT", "S3: Δ TPT",
      "RdYlGn_r", ".4f"),
 ]
 
@@ -192,9 +189,9 @@ def build_combined_html(tabs_data: list) -> str:
 
     tabs_data: list of dicts with keys:
       - label: tab button label
-      - type: "single" | "comparison"
+      - type: "single" | "triple"
       - src: (for single) path relatif ke file HTML peta
-      - src_left, src_right, title_left, title_right: (for comparison)
+      - src_1, src_2, src_3, title_1, title_2, title_3: (for triple)
     """
 
     tab_buttons = []
@@ -219,21 +216,27 @@ def build_combined_html(tabs_data: list) -> str:
                 f'style="width:100%;height:100%;border:none;" loading="lazy"></iframe>'
                 f'</div>'
             )
-        elif tab["type"] == "comparison":
-            title_left = html_lib.escape(tab["title_left"])
-            title_right = html_lib.escape(tab["title_right"])
+        elif tab["type"] == "triple":
+            t1 = html_lib.escape(tab["title_1"])
+            t2 = html_lib.escape(tab["title_2"])
+            t3 = html_lib.escape(tab["title_3"])
             tab_contents.append(
-                f'<div class="tab-content comparison" id="{tab_id}" '
+                f'<div class="tab-content triple" id="{tab_id}" '
                 f'style="display:{display};">'
                 f'<div class="compare-wrapper">'
                 f'<div class="compare-panel">'
-                f'<div class="compare-label">{title_left}</div>'
-                f'<iframe src="{tab["src_left"]}" '
+                f'<div class="compare-label s1-label">{t1}</div>'
+                f'<iframe src="{tab["src_1"]}" '
                 f'style="width:100%;height:100%;border:none;" loading="lazy"></iframe>'
                 f'</div>'
                 f'<div class="compare-panel">'
-                f'<div class="compare-label">{title_right}</div>'
-                f'<iframe src="{tab["src_right"]}" '
+                f'<div class="compare-label s2-label">{t2}</div>'
+                f'<iframe src="{tab["src_2"]}" '
+                f'style="width:100%;height:100%;border:none;" loading="lazy"></iframe>'
+                f'</div>'
+                f'<div class="compare-panel">'
+                f'<div class="compare-label s3-label">{t3}</div>'
+                f'<iframe src="{tab["src_3"]}" '
                 f'style="width:100%;height:100%;border:none;" loading="lazy"></iframe>'
                 f'</div>'
                 f'</div>'
@@ -320,6 +323,18 @@ def build_combined_html(tabs_data: list) -> str:
     background: #e8eaf6;
     border-bottom: 2px solid #4361ee;
   }}
+  .s1-label {{
+    background: #fff3e0;
+    border-bottom: 2px solid #f58518;
+  }}
+  .s2-label {{
+    background: #e8f5e9;
+    border-bottom: 2px solid #2ca02c;
+  }}
+  .s3-label {{
+    background: #e8eaf6;
+    border-bottom: 2px solid #4361ee;
+  }}
   .compare-panel iframe {{
     flex: 1;
   }}
@@ -349,6 +364,7 @@ def build_combined_html(tabs_data: list) -> str:
     color: #fff;
   }}
   .legend-badge.s1 {{ background: #f58518; }}
+  .legend-badge.s2 {{ background: #2ca02c; }}
   .legend-badge.s3 {{ background: #4361ee; }}
   .legend-badge.base {{ background: #6c757d; }}
 </style>
@@ -367,12 +383,16 @@ def build_combined_html(tabs_data: list) -> str:
     <span>Belanja Daerah <b>+10%</b></span>
   </div>
   <div class="legend-item">
+    <span class="legend-badge s2">S2</span>
+    <span>PDRB per kapita <b>+5%</b></span>
+  </div>
+  <div class="legend-item">
     <span class="legend-badge s3">S3</span>
     <span>Belanja <b>+10%</b>, PAD <b>+10%</b>, PDRB <b>+5%</b></span>
   </div>
   <div class="legend-item">
     <span>&Delta;</span>
-    <span>= Selisih (Skenario &minus; Baseline)</span>
+    <span>= Selisih (Skenario &minus; Baseline) &nbsp;|&nbsp; <b>Skala warna seragam</b> per indikator</span>
   </div>
 </div>
 
@@ -421,7 +441,7 @@ def main():
 
     tabs_data = []
 
-    # 4) Peta tunggal (Baseline, S1, S3)
+    # 4) Peta tunggal (Baseline saja)
     MAPS_DIR.mkdir(exist_ok=True)
     map_idx = 0
 
@@ -440,43 +460,56 @@ def main():
         })
         map_idx += 1
 
-    # 5) Peta perbandingan side-by-side (Δ S1 vs S3, skala warna sama)
-    for col_s1, col_s3, tab_label, title_s1, title_s3, cmap_name, fmt in COMPARISON_INDICATORS:
-        if col_s1 not in merged.columns or col_s3 not in merged.columns:
-            print(f"  ⚠ Kolom '{col_s1}' atau '{col_s3}' tidak ditemukan – lewati.")
+    # 5) Triple comparison absolut S1 vs S2 vs S3 – shared color scale
+    for col_s1, col_s2, col_s3, tab_label, t1, t2, t3, cmap_name, fmt in ABSOLUTE_TRIPLE:
+        cols = [col_s1, col_s2, col_s3]
+        if any(c not in merged.columns for c in cols):
+            print(f"  ⚠ Kolom tidak ditemukan – lewati {tab_label}")
             continue
+        print(f"Membuat peta perbandingan absolut: {tab_label} …")
+        all_vals = pd.concat([merged[c] for c in cols]).dropna()
+        shared_vmin, shared_vmax = float(all_vals.min()), float(all_vals.max())
 
-        print(f"Membuat peta perbandingan: {tab_label} …")
-
-        # Shared color scale: gunakan min/max gabungan agar warna bisa dibandingkan
-        all_vals = pd.concat([merged[col_s1], merged[col_s3]]).dropna()
-        shared_vmin = float(all_vals.min())
-        shared_vmax = float(all_vals.max())
-
-        m_left = make_choropleth(
-            merged, col_s1, title_s1,
-            cmap_name=cmap_name, fmt=fmt,
-            vmin_override=shared_vmin, vmax_override=shared_vmax,
-        )
-        m_right = make_choropleth(
-            merged, col_s3, title_s3,
-            cmap_name=cmap_name, fmt=fmt,
-            vmin_override=shared_vmin, vmax_override=shared_vmax,
-        )
-
-        src_left = f"maps/map_{map_idx}.html"
-        src_right = f"maps/map_{map_idx+1}.html"
-        (ROOT / src_left).write_text(m_left.get_root().render(), encoding="utf-8")
-        (ROOT / src_right).write_text(m_right.get_root().render(), encoding="utf-8")
-        map_idx += 2
+        src_1 = f"maps/map_{map_idx}.html"
+        src_2 = f"maps/map_{map_idx+1}.html"
+        src_3 = f"maps/map_{map_idx+2}.html"
+        for src, col, title in [(src_1, col_s1, t1), (src_2, col_s2, t2), (src_3, col_s3, t3)]:
+            m = make_choropleth(merged, col, title, cmap_name=cmap_name, fmt=fmt,
+                                vmin_override=shared_vmin, vmax_override=shared_vmax)
+            (ROOT / src).write_text(m.get_root().render(), encoding="utf-8")
+        map_idx += 3
 
         tabs_data.append({
             "label": tab_label,
-            "type": "comparison",
-            "src_left": src_left,
-            "src_right": src_right,
-            "title_left": "S1: " + title_s1,
-            "title_right": "S3: " + title_s3,
+            "type": "triple",
+            "src_1": src_1, "src_2": src_2, "src_3": src_3,
+            "title_1": t1, "title_2": t2, "title_3": t3,
+        })
+
+    # 6) Triple comparison delta S1 vs S2 vs S3 – shared color scale
+    for col_s1, col_s2, col_s3, tab_label, t1, t2, t3, cmap_name, fmt in DELTA_TRIPLE:
+        cols = [col_s1, col_s2, col_s3]
+        if any(c not in merged.columns for c in cols):
+            print(f"  ⚠ Kolom tidak ditemukan – lewati {tab_label}")
+            continue
+        print(f"Membuat peta perbandingan delta: {tab_label} …")
+        all_vals = pd.concat([merged[c] for c in cols]).dropna()
+        shared_vmin, shared_vmax = float(all_vals.min()), float(all_vals.max())
+
+        src_1 = f"maps/map_{map_idx}.html"
+        src_2 = f"maps/map_{map_idx+1}.html"
+        src_3 = f"maps/map_{map_idx+2}.html"
+        for src, col, title in [(src_1, col_s1, t1), (src_2, col_s2, t2), (src_3, col_s3, t3)]:
+            m = make_choropleth(merged, col, title, cmap_name=cmap_name, fmt=fmt,
+                                vmin_override=shared_vmin, vmax_override=shared_vmax)
+            (ROOT / src).write_text(m.get_root().render(), encoding="utf-8")
+        map_idx += 3
+
+        tabs_data.append({
+            "label": tab_label,
+            "type": "triple",
+            "src_1": src_1, "src_2": src_2, "src_3": src_3,
+            "title_1": t1, "title_2": t2, "title_3": t3,
         })
 
     # 6) Gabungkan ke satu HTML
