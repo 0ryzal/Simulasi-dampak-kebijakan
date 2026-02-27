@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trend Provinsi Jawa Timur 2020–2024</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',sans-serif; background:#f4f6fb; padding:20px; }
+  h2 { text-align:center; color:#1a1a2e; margin-bottom:6px; font-size:17px; }
+  p.sub { text-align:center; color:#666; font-size:12px; margin-bottom:20px; }
+  .charts { display:flex; flex-direction:column; gap:16px; }
+  .chart-box {
+    background:#fff; border-radius:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,.1); padding:12px;
+  }
+  .note { text-align:center; font-size:11px; color:#888; margin-top:16px; }
+</style>
+</head>
+<body>
+<h2>Trend TPT, IPM, dan Realisasi PAD &ndash; Provinsi Jawa Timur 2020–2024</h2>
+<p class="sub">TPT &amp; IPM: nilai agregat provinsi &bull; Total Realisasi PAD se-Jawa Timur</p>
+<div class="charts">
+  <div class="chart-box"><div id="chart-tpt"></div></div>
+  <div class="chart-box"><div id="chart-ipm"></div></div>
+  <div class="chart-box"><div id="chart-pad"></div></div>
+</div>
+<p class="note">Sumber: BPS &amp; APBD Kab/Kota Jawa Timur 2020–2024</p>
+<script>
+const years = [2020, 2021, 2022, 2023, 2024];
+const tpt   = [5.84, 5.74, 5.49, 4.88, 4.19];
+const ipm   = [73.04, 73.48, 74.05, 74.65, 75.35];
+const pad   = [19.17, 22.01, 22.22, 21.94, 26.37];
+
+const layout_base = {
+  height: 280,
+  margin: {l:60, r:30, t:40, b:40},
+  plot_bgcolor: "#f9faff",
+  paper_bgcolor: "transparent",
+  font: {family:"Segoe UI,sans-serif", size:12},
+  xaxis: {tickvals: years, ticktext: years.map(String), gridcolor:"#ececec"},
+  hovermode: "x unified",
+};
+
+const line_base = {
+  type:"scatter", mode:"lines+markers+text",
+  line:{width:3}, marker:{size:8, symbol:"circle"},
+  textposition:"top center",
+  textfont:{size:12, color:"inherit"},
+};
+
+Plotly.newPlot("chart-tpt", [{
+  ...line_base, x:years, y:tpt,
+  name:"TPT (%)",
+  text: tpt.map(v => v.toFixed(2)+"%"),
+  line:{color:"#e05c3a", width:3},
+  marker:{color:"#e05c3a", size:9, line:{color:"white",width:2}},
+  fill:"tozeroy", fillcolor:"rgba(224,92,58,0.07)",
+  hovertemplate:"%{x} &bull; TPT: %{y:.2f}%<extra></extra>",
+}], {...layout_base, title:"Tingkat Pengangguran Terbuka (TPT) — Rata-rata Jawa Timur",
+  yaxis:{title:"TPT (%)", gridcolor:"#ececec", rangemode:"tozero"}}, {responsive:true});
+
+Plotly.newPlot("chart-ipm", [{
+  ...line_base, x:years, y:ipm,
+  name:"IPM",
+  text: ipm.map(v => v.toFixed(2)),
+  line:{color:"#2ca02c", width:3},
+  marker:{color:"#2ca02c", size:9, line:{color:"white",width:2}},
+  fill:"tozeroy", fillcolor:"rgba(44,160,44,0.07)",
+  hovertemplate:"%{x} &bull; IPM: %{y:.2f}<extra></extra>",
+}], {...layout_base, title:"Indeks Pembangunan Manusia (IPM) — Rata-rata Jawa Timur",
+  yaxis:{title:"Nilai IPM", gridcolor:"#ececec"}}, {responsive:true});
+
+Plotly.newPlot("chart-pad", [{
+  ...line_base, x:years, y:pad,
+  name:"PAD (Triliun Rp)",
+  text: pad.map(v => "Rp "+v.toFixed(2)+"T"),
+  line:{color:"#4361ee", width:3},
+  marker:{color:"#4361ee", size:9, line:{color:"white",width:2}},
+  fill:"tozeroy", fillcolor:"rgba(67,97,238,0.07)",
+  hovertemplate:"%{x} &bull; PAD: Rp %{y:.2f}T<extra></extra>",
+}], {...layout_base, title:"Total Realisasi PAD Seluruh Kab/Kota Jawa Timur",
+  yaxis:{title:"Realisasi PAD (Triliun Rp)", gridcolor:"#ececec"}}, {responsive:true});
+</script>
+</body>
+</html>

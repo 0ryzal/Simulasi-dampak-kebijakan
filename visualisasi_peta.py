@@ -570,7 +570,16 @@ def main():
              "caption": "Perbandingan Nilai Absolut Indikator S1 vs S2 vs S3"},
             {"src": "maps_png/best_scenario.png",
              "caption": "Skenario Terbaik & Skor Komposit per Daerah"},
+            {"src": "maps_png/trend_provinsi.png",
+             "caption": "Trend TPT, IPM, dan Realisasi PAD Provinsi Jawa Timur 2020–2024"},
         ],
+    })
+
+    # 8) Tab trend provinsi Jawa Timur (interaktif Plotly)
+    tabs_data.append({
+        "label": "Trend Provinsi",
+        "type": "single",
+        "src": "maps/trend_provinsi.html",
     })
 
     print(f"\nSelesai! Buka index.html di browser.\n"
