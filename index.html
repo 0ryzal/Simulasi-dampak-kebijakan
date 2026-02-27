@@ -1,3 +1,171 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:fc2652ec4eb754c264307a25b1b6aa5fc29020c0c5d9ba6344b50fe94e8d306d
-size 130080043
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visualisasi Peta – Simulasi Kebijakan Jawa Timur</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f2f5;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  h1 {
+    text-align: center;
+    padding: 14px 10px 8px;
+    font-size: 20px;
+    color: #1a1a2e;
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(0,0,0,.1);
+  }
+  .tab-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  }
+  .tab-btn {
+    padding: 7px 14px;
+    border: 1px solid #d0d0d0;
+    border-radius: 20px;
+    background: #f8f8f8;
+    cursor: pointer;
+    font-size: 13px;
+    color: #444;
+    transition: all .2s;
+  }
+  .tab-btn:hover {
+    background: #e0e7ff;
+    border-color: #7c83ff;
+  }
+  .tab-btn.active {
+    background: #4361ee;
+    color: #fff;
+    border-color: #4361ee;
+    font-weight: 600;
+  }
+  .tab-content {
+    flex: 1;
+    min-height: 0;
+  }
+  .compare-wrapper {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    gap: 2px;
+  }
+  .compare-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .compare-label {
+    text-align: center;
+    padding: 6px 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a2e;
+    background: #e8eaf6;
+    border-bottom: 2px solid #4361ee;
+  }
+  .compare-panel iframe {
+    flex: 1;
+  }
+  .legend-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 24px;
+    padding: 8px 16px;
+    background: #eef1ff;
+    font-size: 12px;
+    color: #333;
+    border-bottom: 1px solid #d5d9f0;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 11px;
+    color: #fff;
+  }
+  .legend-badge.s1 { background: #f58518; }
+  .legend-badge.s3 { background: #4361ee; }
+  .legend-badge.base { background: #6c757d; }
+</style>
+</head>
+<body>
+
+<h1>Visualisasi Peta Interaktif &ndash; Simulasi Kebijakan Jawa Timur</h1>
+
+<div class="legend-bar">
+  <div class="legend-item">
+    <span class="legend-badge base">Baseline</span>
+    <span>Kondisi aktual tahun 2024</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-badge s1">S1</span>
+    <span>Belanja Daerah <b>+10%</b></span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-badge s3">S3</span>
+    <span>Belanja <b>+10%</b>, PAD <b>+10%</b>, PDRB <b>+5%</b></span>
+  </div>
+  <div class="legend-item">
+    <span>&Delta;</span>
+    <span>= Selisih (Skenario &minus; Baseline)</span>
+  </div>
+</div>
+
+<div class="tab-bar">
+<button class="tab-btn active" onclick="switchTab(0)" id="btn_0">Kemiskinan (Baseline)</button>
+<button class="tab-btn " onclick="switchTab(1)" id="btn_1">IPM (Baseline)</button>
+<button class="tab-btn " onclick="switchTab(2)" id="btn_2">TPT (Baseline)</button>
+<button class="tab-btn " onclick="switchTab(3)" id="btn_3">Kemiskinan (S1)</button>
+<button class="tab-btn " onclick="switchTab(4)" id="btn_4">IPM (S1)</button>
+<button class="tab-btn " onclick="switchTab(5)" id="btn_5">TPT (S1)</button>
+<button class="tab-btn " onclick="switchTab(6)" id="btn_6">Kemiskinan (S3)</button>
+<button class="tab-btn " onclick="switchTab(7)" id="btn_7">IPM (S3)</button>
+<button class="tab-btn " onclick="switchTab(8)" id="btn_8">TPT (S3)</button>
+<button class="tab-btn " onclick="switchTab(9)" id="btn_9">Δ Kemiskinan (S1 vs S3)</button>
+<button class="tab-btn " onclick="switchTab(10)" id="btn_10">Δ IPM (S1 vs S3)</button>
+<button class="tab-btn " onclick="switchTab(11)" id="btn_11">Δ TPT (S1 vs S3)</button>
+</div>
+
+<div class="tab-content" id="tab_0" style="display:block;"><iframe src="maps/map_0.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
+<div class="tab-content" id="tab_1" style="display:none;"><iframe src="maps/map_1.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
+<div class="tab-content" id="tab_2" style="display:none;"><iframe src="maps/map_2.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
+<div class="tab-content" id="tab_3" style="display:none;"><iframe src="maps/map_3.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
+<div class="tab-content" id="tab_4" style="display:none;"><iframe src="maps/map_4.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
+<div class="tab-content" id="tab_5" style="display:none;"><iframe src="maps/map_5.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
+<div class="tab-content" id="tab_6" style="display:none;"><iframe src="maps/map_6.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
+<div class="tab-content" id="tab_7" style="display:none;"><iframe src="maps/map_7.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
+<div class="tab-content" id="tab_8" style="display:none;"><iframe src="maps/map_8.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div>
+<div class="tab-content comparison" id="tab_9" style="display:none;"><div class="compare-wrapper"><div class="compare-panel"><div class="compare-label">S1: Δ Kemiskinan (S1 − Baseline)</div><iframe src="maps/map_9.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label">S3: Δ Kemiskinan (S3 − Baseline)</div><iframe src="maps/map_10.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div></div></div>
+<div class="tab-content comparison" id="tab_10" style="display:none;"><div class="compare-wrapper"><div class="compare-panel"><div class="compare-label">S1: Δ IPM (S1 − Baseline)</div><iframe src="maps/map_11.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label">S3: Δ IPM (S3 − Baseline)</div><iframe src="maps/map_12.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div></div></div>
+<div class="tab-content comparison" id="tab_11" style="display:none;"><div class="compare-wrapper"><div class="compare-panel"><div class="compare-label">S1: Δ TPT (S1 − Baseline)</div><iframe src="maps/map_13.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div><div class="compare-panel"><div class="compare-label">S3: Δ TPT (S3 − Baseline)</div><iframe src="maps/map_14.html" style="width:100%;height:100%;border:none;" loading="lazy"></iframe></div></div></div>
+
+<script>
+function switchTab(idx) {
+  document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab_' + idx).style.display = 'block';
+  document.getElementById('btn_' + idx).classList.add('active');
+}
+</script>
+</body>
+</html>

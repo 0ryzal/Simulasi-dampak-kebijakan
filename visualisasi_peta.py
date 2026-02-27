@@ -24,7 +24,8 @@ import branca.colormap as cm
 ROOT = Path(".").resolve()
 GEOJSON_PATH = ROOT / "Kabupaten-Kota (Provinsi Jawa Timur).geojson"
 CSV_PATH = ROOT / "policy_simulation_output.csv"
-OUTPUT_PATH = ROOT / "visualisasi_peta.html"
+OUTPUT_PATH = ROOT / "index.html"
+MAPS_DIR = ROOT / "maps"
 
 # Indikator peta tunggal
 SINGLE_INDICATORS = [
@@ -192,8 +193,8 @@ def build_combined_html(tabs_data: list) -> str:
     tabs_data: list of dicts with keys:
       - label: tab button label
       - type: "single" | "comparison"
-      - html: (for single) folium HTML string
-      - html_left, html_right, title_left, title_right: (for comparison)
+      - src: (for single) path relatif ke file HTML peta
+      - src_left, src_right, title_left, title_right: (for comparison)
     """
 
     tab_buttons = []
@@ -211,17 +212,14 @@ def build_combined_html(tabs_data: list) -> str:
         )
 
         if tab["type"] == "single":
-            escaped_html = html_lib.escape(tab["html"])
             tab_contents.append(
                 f'<div class="tab-content" id="{tab_id}" '
                 f'style="display:{display};">'
-                f'<iframe srcdoc="{escaped_html}" '
-                f'style="width:100%;height:100%;border:none;"></iframe>'
+                f'<iframe src="{tab["src"]}" '
+                f'style="width:100%;height:100%;border:none;" loading="lazy"></iframe>'
                 f'</div>'
             )
         elif tab["type"] == "comparison":
-            escaped_left = html_lib.escape(tab["html_left"])
-            escaped_right = html_lib.escape(tab["html_right"])
             title_left = html_lib.escape(tab["title_left"])
             title_right = html_lib.escape(tab["title_right"])
             tab_contents.append(
@@ -230,13 +228,13 @@ def build_combined_html(tabs_data: list) -> str:
                 f'<div class="compare-wrapper">'
                 f'<div class="compare-panel">'
                 f'<div class="compare-label">{title_left}</div>'
-                f'<iframe srcdoc="{escaped_left}" '
-                f'style="width:100%;height:100%;border:none;"></iframe>'
+                f'<iframe src="{tab["src_left"]}" '
+                f'style="width:100%;height:100%;border:none;" loading="lazy"></iframe>'
                 f'</div>'
                 f'<div class="compare-panel">'
                 f'<div class="compare-label">{title_right}</div>'
-                f'<iframe srcdoc="{escaped_right}" '
-                f'style="width:100%;height:100%;border:none;"></iframe>'
+                f'<iframe src="{tab["src_right"]}" '
+                f'style="width:100%;height:100%;border:none;" loading="lazy"></iframe>'
                 f'</div>'
                 f'</div>'
                 f'</div>'
@@ -424,18 +422,23 @@ def main():
     tabs_data = []
 
     # 4) Peta tunggal (Baseline, S1, S3)
+    MAPS_DIR.mkdir(exist_ok=True)
+    map_idx = 0
+
     for col, tab_label, title, cmap_name, fmt in SINGLE_INDICATORS:
         if col not in merged.columns:
             print(f"  ⚠ Kolom '{col}' tidak ditemukan – lewati.")
             continue
         print(f"Membuat peta: {tab_label} …")
         m = make_choropleth(merged, col, title, cmap_name=cmap_name, fmt=fmt)
-        map_html = m.get_root().render()
+        map_filename = f"maps/map_{map_idx}.html"
+        (ROOT / map_filename).write_text(m.get_root().render(), encoding="utf-8")
         tabs_data.append({
             "label": tab_label,
             "type": "single",
-            "html": map_html,
+            "src": map_filename,
         })
+        map_idx += 1
 
     # 5) Peta perbandingan side-by-side (Δ S1 vs S3, skala warna sama)
     for col_s1, col_s3, tab_label, title_s1, title_s3, cmap_name, fmt in COMPARISON_INDICATORS:
@@ -461,11 +464,17 @@ def main():
             vmin_override=shared_vmin, vmax_override=shared_vmax,
         )
 
+        src_left = f"maps/map_{map_idx}.html"
+        src_right = f"maps/map_{map_idx+1}.html"
+        (ROOT / src_left).write_text(m_left.get_root().render(), encoding="utf-8")
+        (ROOT / src_right).write_text(m_right.get_root().render(), encoding="utf-8")
+        map_idx += 2
+
         tabs_data.append({
             "label": tab_label,
             "type": "comparison",
-            "html_left": m_left.get_root().render(),
-            "html_right": m_right.get_root().render(),
+            "src_left": src_left,
+            "src_right": src_right,
             "title_left": "S1: " + title_s1,
             "title_right": "S3: " + title_s3,
         })
@@ -477,15 +486,8 @@ def main():
     OUTPUT_PATH.write_text(combined, encoding="utf-8")
     print(f"  → Disimpan: {OUTPUT_PATH.name}")
 
-    # 7) Bersihkan file HTML lama (opsional)
-    old_files = list(ROOT.glob("map_*.html"))
-    if old_files:
-        print(f"\nMenghapus {len(old_files)} file peta lama …")
-        for f in old_files:
-            f.unlink()
-            print(f"  ✗ {f.name}")
-
-    print("\nSelesai! Buka visualisasi_peta.html di browser.")
+    print(f"\nSelesai! Buka index.html di browser.\n"
+          f"  → File peta tersimpan di: maps/ ({map_idx} file)")
 
 
 if __name__ == "__main__":
