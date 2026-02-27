@@ -5,10 +5,11 @@ Script ini membaca:
   1. File GeoJSON kabupaten/kota Jawa Timur
   2. File CSV hasil simulasi kebijakan (policy_simulation_output.csv)
 
-Kemudian menghasilkan file PNG peta choropleth untuk setiap skenario:
-  - choropleth_s1.png  (Δ Kemiskinan, Δ IPM, Δ TPT untuk S1)
-  - choropleth_s2.png  (Δ Kemiskinan, Δ IPM, Δ TPT untuk S2)
-  - choropleth_s3.png  (Δ Kemiskinan, Δ IPM, Δ TPT untuk S3)
+Output (folder maps_png/):
+  comparison_delta.png    – grid 3×3: Δ Kemiskinan/IPM/TPT vs S1/S2/S3 (shared scale per baris)
+  comparison_absolut.png  – grid 3×3: nilai absolut per indikator (shared scale per baris)
+  best_scenario.png       – peta skenario terbaik per daerah
+  best_score.png          – peta skor komposit
 
 Skenario:
   S1 – Belanja Daerah +10%
@@ -24,12 +25,24 @@ import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.colors as mcolors
+import matplotlib.cm as mcm
+from matplotlib.colorbar import ColorbarBase
 
 
 # ─── Konfigurasi ────────────────────────────────────────────────────
 ROOT = Path(".").resolve()
 GEOJSON_PATH = ROOT / "Kabupaten-Kota (Provinsi Jawa Timur).geojson"
 CSV_PATH = ROOT / "policy_simulation_output.csv"
+OUT_DIR = ROOT / "maps_png"
+OUT_DIR.mkdir(exist_ok=True)
+
+S_COLORS = {"S1": "#f58518", "S2": "#2ca02c", "S3": "#4361ee"}
+S_LABELS = {
+    "S1": "S1 – Belanja +10%",
+    "S2": "S2 – PDRB +5%",
+    "S3": "S3 – Belanja +10%, PAD +10%, PDRB +5%",
+}
 
 
 # ─── Fungsi bantu: normalisasi nama ─────────────────────────────────
@@ -51,6 +64,39 @@ def _build_geo_key(row):
     return _norm(f"{t} {n}")
 
 
+# ─── Fungsi: plot satu choropleth panel ─────────────────────────────
+def plot_panel(ax, gdf, col, cmap, vmin, vmax, fmt=".2f", fontsize=4.5):
+    """Plot choropleth ke axes dengan shared vmin/vmax."""
+    gdf.plot(
+        column=col,
+        cmap=cmap,
+        linewidth=0.4,
+        edgecolor="#444444",
+        legend=False,
+        vmin=vmin,
+        vmax=vmax,
+        missing_kwds={"color": "#dddddd", "label": "NA"},
+        ax=ax,
+    )
+    for _, row in gdf.iterrows():
+        val = row.get(col)
+        if pd.notna(val):
+            cx, cy = row.geometry.centroid.x, row.geometry.centroid.y
+            ax.text(cx, cy, f"{val:{fmt}}", fontsize=fontsize,
+                    ha="center", va="center", color="black")
+    ax.set_axis_off()
+
+
+def add_shared_colorbar(fig, axes_row, cmap, vmin, vmax, label):
+    """Tambah satu colorbar di kanan baris axes."""
+    norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+    sm = mcm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    cbar = fig.colorbar(sm, ax=axes_row, shrink=0.7, pad=0.01, aspect=20)
+    cbar.set_label(label, fontsize=9)
+    cbar.ax.tick_params(labelsize=8)
+
+
 # ─── Main ───────────────────────────────────────────────────────────
 def main():
     # 1) Baca GeoJSON
@@ -58,7 +104,6 @@ def main():
     gdf_raw = gpd.read_file(str(GEOJSON_PATH))
     print(f"  → {len(gdf_raw)} fitur terbaca.")
 
-    # Build join key from GeoJSON
     if {"NAME_2", "TYPE_2"}.issubset(gdf_raw.columns):
         gdf_raw["join_name"] = gdf_raw.apply(_build_geo_key, axis=1)
     else:
@@ -68,153 +113,102 @@ def main():
     # 2) Baca CSV simulasi
     print("Membaca CSV simulasi …")
     output = pd.read_csv(str(CSV_PATH))
-    print(f"  → {len(output)} baris data simulasi.")
-
     out = output.copy()
     out["join_name"] = out["nama_kabkota"].apply(_norm)
 
-    # 3) Columns to merge
-    merge_cols = (
-        ["join_name"] +
-        [f"delta_poor_rate_s{i}" for i in (1, 2, 3)] +
-        [f"delta_IPM_s{i}" for i in (1, 2, 3)] +
-        [f"delta_TPT_s{i}" for i in (1, 2, 3)] +
-        # Also merge absolute values for S1, S2, S3 and baseline
-        ["nama_kabkota"] +
-        [f"poor_rate_s{i}" for i in (1, 2, 3)] +
-        [f"IPM_s{i}" for i in (1, 2, 3)] +
-        [f"TPT_s{i}" for i in (1, 2, 3)] +
-        ["poor_rate_baseline", "IPM_baseline", "TPT_baseline"]
-    )
-    # Filter to existing columns
-    merge_cols = [c for c in merge_cols if c in out.columns]
+    merge_cols = [c for c in out.columns if c != "nama_kabkota"] + ["nama_kabkota"]
+    gdf = gdf_raw.merge(out[merge_cols], on="join_name", how="left")
 
-    gdf_base = gdf_raw.merge(out[merge_cols], on="join_name", how="left")
-
-    matched = gdf_base["delta_poor_rate_s1"].notna().sum()
-    print(f"  Wilayah tercocokkan: {matched}/{len(gdf_base)}")
-    if matched < len(gdf_base):
-        unmatched = gdf_base[gdf_base["delta_poor_rate_s1"].isna()]["join_name"].tolist()
-        print("  Tidak cocok:", unmatched)
-    else:
+    matched = gdf["delta_poor_rate_s1"].notna().sum()
+    print(f"  Wilayah tercocokkan: {matched}/{len(gdf)}")
+    if matched == len(gdf):
         print("  ✓ Semua wilayah berhasil di-merge.")
 
-    # ═══════════════════════════════════════════════════════════════
-    # 4) PETA DELTA per Skenario (3 panel: ΔKemiskinan, ΔIPM, ΔTPT)
-    # ═══════════════════════════════════════════════════════════════
-    scenarios = {
-        "S1 – Belanja Daerah +10%": 1,
-        "S2 – PDRB per Kapita +5%": 2,
-        "S3 – Belanja +10%, PAD +10%, PDRB +5%": 3,
-    }
-
-    indicator_specs = [
-        ("delta_poor_rate_s{n}", "Δ Kemiskinan (per 1000)", "RdYlGn_r"),
-        ("delta_IPM_s{n}",       "Δ IPM (poin)",            "RdYlGn"),
-        ("delta_TPT_s{n}",       "Δ TPT (pp)",              "RdYlGn_r"),
+    # ══════════════════════════════════════════════════════════════
+    # 3) PERBANDINGAN DELTA – grid 3 baris (indikator) × 3 kolom (S)
+    #    shared color scale per baris
+    # ══════════════════════════════════════════════════════════════
+    delta_specs = [
+        ("delta_poor_rate_s{n}", "RdYlGn_r", "Δ Kemiskinan (per 1.000 pddk)", ".3f"),
+        ("delta_IPM_s{n}",       "RdYlGn",   "Δ IPM (poin)",                  ".3f"),
+        ("delta_TPT_s{n}",       "RdYlGn_r", "Δ TPT (pp)",                    ".3f"),
     ]
 
-    for s_label, s_num in scenarios.items():
-        fig, axes = plt.subplots(1, 3, figsize=(20, 7))
-        fig.suptitle(
-            f"Peta Dampak Simulasi: {s_label}",
-            fontsize=15, fontweight="bold", y=1.01,
-        )
+    fig, axes = plt.subplots(3, 3, figsize=(22, 18))
+    fig.suptitle(
+        "Perbandingan Dampak Kebijakan: Δ Indikator (S1 vs S2 vs S3)\n"
+        "Skala warna seragam per indikator agar dapat dibandingkan langsung",
+        fontsize=14, fontweight="bold", y=1.01,
+    )
 
-        for ax, (col_tpl, ind_title, cmap) in zip(axes, indicator_specs):
-            col = col_tpl.replace("{n}", str(s_num))
-            valid = gdf_base[col].dropna()
-            vmin = float(valid.quantile(0.05)) if len(valid) else None
-            vmax = float(valid.quantile(0.95)) if len(valid) else None
+    # Header kolom
+    for j, s in enumerate(["S1", "S2", "S3"]):
+        axes[0, j].set_title(S_LABELS[s], fontsize=11, fontweight="bold",
+                             color=S_COLORS[s], pad=8)
 
-            gdf_base.plot(
-                column=col,
-                cmap=cmap,
-                linewidth=0.3,
-                edgecolor="black",
-                legend=True,
-                vmin=vmin,
-                vmax=vmax,
-                legend_kwds={"shrink": 0.6, "label": ind_title},
-                missing_kwds={"color": "lightgrey", "label": "NA"},
-                ax=ax,
-            )
-            # Centroid value labels
-            for _, row in gdf_base.iterrows():
-                if pd.notna(row.get(col)):
-                    cx, cy = row.geometry.centroid.x, row.geometry.centroid.y
-                    ax.text(
-                        cx, cy, f"{row[col]:.2f}", fontsize=4.5,
-                        ha="center", va="center", color="black",
-                    )
+    for i, (col_tpl, cmap, label, fmt) in enumerate(delta_specs):
+        cols = [col_tpl.replace("{n}", str(n)) for n in (1, 2, 3)]
+        all_vals = pd.concat([gdf[c].dropna() for c in cols])
+        vmin = float(all_vals.quantile(0.02))
+        vmax = float(all_vals.quantile(0.98))
 
-            ax.set_title(ind_title, fontsize=11)
-            ax.set_axis_off()
+        for j, (col, s) in enumerate(zip(cols, ["S1", "S2", "S3"])):
+            plot_panel(axes[i, j], gdf, col, cmap, vmin, vmax, fmt=fmt)
 
-        plt.tight_layout()
-        fname = f"choropleth_s{s_num}.png"
-        plt.savefig(fname, dpi=150, bbox_inches="tight")
-        plt.close(fig)
-        print(f"  ✓ Saved: {fname}")
+        # Label baris di kiri
+        axes[i, 0].set_ylabel(label, fontsize=11, labelpad=10, rotation=90)
+        add_shared_colorbar(fig, axes[i, :], cmap, vmin, vmax, label)
 
-    # ═══════════════════════════════════════════════════════════════
-    # 5) PETA ABSOLUT per Skenario (Kemiskinan, IPM, TPT)
-    # ═══════════════════════════════════════════════════════════════
-    abs_indicator_specs = [
-        ("poor_rate_s{n}", "Kemiskinan (per 1000 penduduk)", "YlOrRd"),
-        ("IPM_s{n}",       "IPM",                            "YlGn"),
-        ("TPT_s{n}",       "TPT (%)",                        "PuBu"),
+    plt.tight_layout()
+    out_path = OUT_DIR / "comparison_delta.png"
+    plt.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  ✓ Saved: {out_path.name}")
+
+    # ══════════════════════════════════════════════════════════════
+    # 4) PERBANDINGAN ABSOLUT – grid 3 × 3, shared scale per baris
+    # ══════════════════════════════════════════════════════════════
+    abs_specs = [
+        ("poor_rate_s{n}", "YlOrRd", "Kemiskinan (per 1.000 pddk)", ".1f"),
+        ("IPM_s{n}",       "YlGn",   "IPM",                          ".2f"),
+        ("TPT_s{n}",       "PuBu",   "TPT (%)",                      ".2f"),
     ]
 
-    for s_label, s_num in scenarios.items():
-        fig, axes = plt.subplots(1, 3, figsize=(20, 7))
-        fig.suptitle(
-            f"Peta Indikator Absolut: {s_label}",
-            fontsize=15, fontweight="bold", y=1.01,
-        )
+    fig, axes = plt.subplots(3, 3, figsize=(22, 18))
+    fig.suptitle(
+        "Perbandingan Nilai Absolut Indikator: S1 vs S2 vs S3\n"
+        "Skala warna seragam per indikator",
+        fontsize=14, fontweight="bold", y=1.01,
+    )
 
-        for ax, (col_tpl, ind_title, cmap) in zip(axes, abs_indicator_specs):
-            col = col_tpl.replace("{n}", str(s_num))
-            if col not in gdf_base.columns:
-                ax.set_visible(False)
-                continue
+    for j, s in enumerate(["S1", "S2", "S3"]):
+        axes[0, j].set_title(S_LABELS[s], fontsize=11, fontweight="bold",
+                             color=S_COLORS[s], pad=8)
 
-            valid = gdf_base[col].dropna()
-            vmin = float(valid.quantile(0.05)) if len(valid) else None
-            vmax = float(valid.quantile(0.95)) if len(valid) else None
+    for i, (col_tpl, cmap, label, fmt) in enumerate(abs_specs):
+        cols = [col_tpl.replace("{n}", str(n)) for n in (1, 2, 3)]
+        all_vals = pd.concat([gdf[c].dropna() for c in cols if c in gdf.columns])
+        vmin = float(all_vals.quantile(0.02))
+        vmax = float(all_vals.quantile(0.98))
 
-            gdf_base.plot(
-                column=col,
-                cmap=cmap,
-                linewidth=0.3,
-                edgecolor="black",
-                legend=True,
-                vmin=vmin,
-                vmax=vmax,
-                legend_kwds={"shrink": 0.6, "label": ind_title},
-                missing_kwds={"color": "lightgrey", "label": "NA"},
-                ax=ax,
-            )
-            for _, row in gdf_base.iterrows():
-                if pd.notna(row.get(col)):
-                    cx, cy = row.geometry.centroid.x, row.geometry.centroid.y
-                    ax.text(
-                        cx, cy, f"{row[col]:.1f}", fontsize=4.5,
-                        ha="center", va="center", color="black",
-                    )
+        for j, (col, s) in enumerate(zip(cols, ["S1", "S2", "S3"])):
+            if col in gdf.columns:
+                plot_panel(axes[i, j], gdf, col, cmap, vmin, vmax, fmt=fmt)
+            else:
+                axes[i, j].set_axis_off()
 
-            ax.set_title(f"{ind_title} – {s_label}", fontsize=10)
-            ax.set_axis_off()
+        axes[i, 0].set_ylabel(label, fontsize=11, labelpad=10, rotation=90)
+        add_shared_colorbar(fig, axes[i, :], cmap, vmin, vmax, label)
 
-        plt.tight_layout()
-        fname = f"map_absolut_s{s_num}.png"
-        plt.savefig(fname, dpi=150, bbox_inches="tight")
-        plt.close(fig)
-        print(f"  ✓ Saved: {fname}")
+    plt.tight_layout()
+    out_path = OUT_DIR / "comparison_absolut.png"
+    plt.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  ✓ Saved: {out_path.name}")
 
-    # ═══════════════════════════════════════════════════════════════
-    # 6) PETA SKENARIO TERBAIK per Daerah
-    # ═══════════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════════
+    # 5) PETA SKENARIO TERBAIK per Daerah (skor komposit)
+    # ══════════════════════════════════════════════════════════════
     def minmax_global(series, global_min, global_max):
         rng = global_max - global_min
         return (series - global_min) / rng if rng != 0 else pd.Series(0.5, index=series.index)
@@ -226,92 +220,72 @@ def main():
     ipm_all  = pd.concat([df[f"delta_IPM_s{s}"]       for s in (1, 2, 3)])
     tpt_all  = pd.concat([df[f"delta_TPT_s{s}"]       for s in (1, 2, 3)])
 
-    poor_min, poor_max = poor_all.min(), poor_all.max()
-    ipm_min,  ipm_max  = ipm_all.min(),  ipm_all.max()
-    tpt_min,  tpt_max  = tpt_all.min(),  tpt_all.max()
-
     scores = pd.DataFrame(index=df.index)
     for s in (1, 2, 3):
-        norm_poor = 1 - minmax_global(df[f"delta_poor_rate_s{s}"], poor_min, poor_max)
-        norm_ipm  =     minmax_global(df[f"delta_IPM_s{s}"],       ipm_min,  ipm_max)
-        norm_tpt  = 1 - minmax_global(df[f"delta_TPT_s{s}"],       tpt_min,  tpt_max)
+        norm_poor = 1 - minmax_global(df[f"delta_poor_rate_s{s}"], poor_all.min(), poor_all.max())
+        norm_ipm  =     minmax_global(df[f"delta_IPM_s{s}"],       ipm_all.min(),  ipm_all.max())
+        norm_tpt  = 1 - minmax_global(df[f"delta_TPT_s{s}"],       tpt_all.min(),  tpt_all.max())
         scores[f"score_s{s}"] = (norm_poor + norm_ipm + norm_tpt) / 3
 
-    df["best_scenario"] = scores.idxmax(axis=1).str.replace("score_s", "S").astype(str)
-    df["best_score"] = scores.max(axis=1)
+    df["best_scenario"] = scores.idxmax(axis=1).str.replace("score_s", "S")
+    df["best_score"]    = scores.max(axis=1)
 
     print("\n  Distribusi skenario terbaik:")
     print(df["best_scenario"].value_counts().to_string())
 
-    gdf_best = gdf_raw.merge(
-        df[["join_name", "best_scenario", "best_score"]],
-        on="join_name", how="left",
+    gdf_best = gdf_raw.merge(df[["join_name", "best_scenario", "best_score"]], on="join_name", how="left")
+    gdf_best["_color"] = gdf_best["best_scenario"].map(S_COLORS).fillna("#cccccc")
+
+    # Panel kiri: skenario terbaik | Panel kanan: skor komposit
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 9))
+    fig.suptitle(
+        "Skenario Terbaik & Skor Komposit per Daerah\n"
+        "(Skor = rata-rata Δ Kemiskinan ↓ + Δ IPM ↑ + Δ TPT ↓, dinormalisasi 0–1)",
+        fontsize=13, fontweight="bold",
     )
 
-    scen_colors = {"S1": "#3498db", "S2": "#e67e22", "S3": "#2ecc71"}
-    gdf_best["_color"] = gdf_best["best_scenario"].map(scen_colors).fillna("#cccccc")
-
-    fig, ax = plt.subplots(1, 1, figsize=(14, 8))
-    gdf_best.plot(color=gdf_best["_color"], linewidth=0.3, edgecolor="black", ax=ax)
-
+    # Kiri: warna per skenario
+    gdf_best.plot(color=gdf_best["_color"], linewidth=0.4, edgecolor="#333333", ax=ax1)
     for _, row in gdf_best.iterrows():
-        if pd.notna(row.get("best_scenario")) and pd.notna(row.get("best_score")):
+        if pd.notna(row.get("best_scenario")):
             cx, cy = row.geometry.centroid.x, row.geometry.centroid.y
-            ax.text(
-                cx, cy, row["best_scenario"], fontsize=4.8,
-                ha="center", va="center", color="black", fontweight="bold",
-            )
-
-    legend_patches = [mpatches.Patch(color=c, label=f"Skenario {s}") for s, c in scen_colors.items()]
+            ax1.text(cx, cy, row["best_scenario"], fontsize=5, ha="center", va="center",
+                     fontweight="bold", color="black")
+    legend_patches = [mpatches.Patch(color=S_COLORS[s], label=S_LABELS[s]) for s in ("S1", "S2", "S3")]
     legend_patches.append(mpatches.Patch(color="#cccccc", label="Data NA"))
-    ax.legend(
-        handles=legend_patches, fontsize=10, loc="lower left",
-        title="Skenario Terbaik", title_fontsize=10,
-    )
-    ax.set_title(
-        "Skenario Terbaik per Daerah\n(Berdasarkan Skor Komposit: Δ Kemiskinan + Δ IPM + Δ TPT)",
-        fontsize=14, fontweight="bold",
-    )
-    ax.set_axis_off()
-    plt.tight_layout()
-    plt.savefig("choropleth_best_scenario.png", dpi=150, bbox_inches="tight")
-    plt.close(fig)
-    print("  ✓ Saved: choropleth_best_scenario.png")
+    ax1.legend(handles=legend_patches, fontsize=9, loc="lower left",
+               title="Skenario Terbaik", title_fontsize=9)
+    ax1.set_title("Skenario Terbaik per Daerah", fontsize=12, fontweight="bold")
+    ax1.set_axis_off()
 
-    # ═══════════════════════════════════════════════════════════════
-    # 7) PETA SKOR KOMPOSIT
-    # ═══════════════════════════════════════════════════════════════
-    fig, ax = plt.subplots(1, 1, figsize=(14, 8))
+    # Kanan: skor komposit heatmap
     valid = gdf_best["best_score"].dropna()
     gdf_best.plot(
-        column="best_score",
-        cmap="YlGnBu",
-        linewidth=0.3,
-        edgecolor="black",
+        column="best_score", cmap="YlGnBu",
+        linewidth=0.4, edgecolor="#333333",
         legend=True,
-        vmin=float(valid.quantile(0.05)) if len(valid) else None,
-        vmax=float(valid.quantile(0.95)) if len(valid) else None,
-        legend_kwds={"label": "Skor Komposit (0–1)", "shrink": 0.6},
-        missing_kwds={"color": "lightgrey", "label": "NA"},
-        ax=ax,
+        vmin=float(valid.quantile(0.05)), vmax=float(valid.quantile(0.95)),
+        legend_kwds={"label": "Skor Komposit (0–1)", "shrink": 0.7},
+        missing_kwds={"color": "#dddddd", "label": "NA"},
+        ax=ax2,
     )
     for _, row in gdf_best.iterrows():
-        if pd.notna(row.get("best_score")):
+        if pd.notna(row.get("best_score")) and pd.notna(row.get("best_scenario")):
             cx, cy = row.geometry.centroid.x, row.geometry.centroid.y
-            ax.text(
-                cx, cy, f"{row['best_score']:.2f}", fontsize=4.5,
-                ha="center", va="center", color="black",
-            )
+            ax2.text(cx, cy, f"{row['best_score']:.2f}", fontsize=4.5,
+                     ha="center", va="center", color="black")
+    ax2.set_title("Skor Komposit per Daerah", fontsize=12, fontweight="bold")
+    ax2.set_axis_off()
 
-    ax.set_title("Skor Komposit Skenario Terbaik per Daerah", fontsize=14, fontweight="bold")
-    ax.set_axis_off()
     plt.tight_layout()
-    plt.savefig("choropleth_best_score.png", dpi=150, bbox_inches="tight")
+    out_path = OUT_DIR / "best_scenario.png"
+    plt.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print("  ✓ Saved: choropleth_best_score.png")
+    print(f"  ✓ Saved: {out_path.name}")
 
-    print("\n✅ Selesai! Semua peta PNG berhasil dibuat.")
+    print(f"\n✅ Selesai! Semua PNG tersimpan di folder: maps_png/")
 
 
 if __name__ == "__main__":
     main()
+

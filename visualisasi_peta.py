@@ -243,6 +243,23 @@ def build_combined_html(tabs_data: list) -> str:
                 f'</div>'
             )
 
+        elif tab["type"] == "images":
+            imgs_html = ""
+            for img in tab["images"]:
+                caption = html_lib.escape(img["caption"])
+                imgs_html += (
+                    f'<div class="img-block">'
+                    f'<div class="img-caption">{caption}</div>'
+                    f'<img src="{img["src"]}" class="map-img" loading="lazy"/>'
+                    f'</div>'
+                )
+            tab_contents.append(
+                f'<div class="tab-content img-tab" id="{tab_id}" '
+                f'style="display:{display}; overflow-y:auto;">'
+                f'{imgs_html}'
+                f'</div>'
+            )
+
     buttons_html = "\n".join(tab_buttons)
     contents_html = "\n".join(tab_contents)
 
@@ -337,6 +354,29 @@ def build_combined_html(tabs_data: list) -> str:
   }}
   .compare-panel iframe {{
     flex: 1;
+  }}
+  .img-tab {{
+    padding: 20px;
+    background: #f0f2f5;
+  }}
+  .img-block {{
+    margin-bottom: 32px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    overflow: hidden;
+  }}
+  .img-caption {{
+    padding: 10px 16px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #1a1a2e;
+    background: #e8eaf6;
+    border-bottom: 2px solid #4361ee;
+  }}
+  .map-img {{
+    width: 100%;
+    display: block;
   }}
   .legend-bar {{
     display: flex;
@@ -518,6 +558,20 @@ def main():
 
     OUTPUT_PATH.write_text(combined, encoding="utf-8")
     print(f"  → Disimpan: {OUTPUT_PATH.name}")
+
+    # 7) Tab gambar PNG
+    tabs_data.append({
+        "label": "Gambar PNG",
+        "type": "images",
+        "images": [
+            {"src": "maps_png/comparison_delta.png",
+             "caption": "Perbandingan Δ Indikator S1 vs S2 vs S3 (shared color scale per indikator)"},
+            {"src": "maps_png/comparison_absolut.png",
+             "caption": "Perbandingan Nilai Absolut Indikator S1 vs S2 vs S3"},
+            {"src": "maps_png/best_scenario.png",
+             "caption": "Skenario Terbaik & Skor Komposit per Daerah"},
+        ],
+    })
 
     print(f"\nSelesai! Buka index.html di browser.\n"
           f"  → File peta tersimpan di: maps/ ({map_idx} file)")
